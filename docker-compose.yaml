@@ -1,0 +1,34 @@
+# Use postgres/example user/password credentials
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres
+    environment:
+      - POSTGRES_PASSWORD=secret
+    ports: 
+      - 5432:5432 # Exposing for debugging
+
+  # postgres_init:
+  #   image: postgres
+  #   depends_on:
+  #     - postgres
+  #   restart: "no"
+  #   volumes:
+  #     - ./db-init.sql:/db-init.sql
+  #   command: "sleep 5 && PGPASSWORD=secret psql -U postgres -d postgres -h postgres -f /db-init.sql"
+
+  reportmeister:
+    build: .
+    ports:
+      - 3000:3000
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=report_meister_db
+      - DB_SCHEMA=report_meister
+      - DB_USER=report_meister_user
+      - DB_PASSWORD=secret
+      - API_PORT=3000
+      - MODE=dev
+    
