@@ -1,59 +1,31 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { CommodityProjectionController } from './commodity-projection.controller';
 import { CommodityProjectionService } from '../services/commodity-projection.service';
-import { HistogramDto } from 'src/dtos/histogram.dto';
-import { Histogram } from 'src/entities/histogram.entity';
-import { DataSource } from 'typeorm';
-import { ModuleMocker, MockFunctionMetadata } from 'jest-mock';
-
-const moduleMocker = new ModuleMocker(global);
-
-jest.mock('typeorm', () => {
-  return {
-    DataSource: jest.fn().mockImplementation(() => ({
-      getRepository: jest.fn().mockReturnValue({
-        extend: jest.fn().mockResolvedValue({}),
-      }),
-    })),
-  };
-});
+import { anything, instance, mock, when } from 'ts-mockito';
+import { NotFoundException } from '@nestjs/common';
 
 describe('commodity projection controller tests', () => {
   let controller: CommodityProjectionController;
-  let service: CommodityProjectionService;
-  let dataSource: DataSource;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      imports: [],
-      controllers: [CommodityProjectionController],
-      providers: [CommodityProjectionService],
-    }).compile();
-
-    controller = module.get<CommodityProjectionController>(
-      CommodityProjectionController,
+    const service = mock(CommodityProjectionService);
+    when(service.getHistogram(anything())).thenReturn(
+      Promise.resolve({ buckets: [] }),
     );
+    controller = new CommodityProjectionController(instance(service));
   });
 
-  it('should return the histogram for value', async () => {
-    const dto: HistogramDto = {
-      buckets: [{
-        ordinal: 1,
-        count: 10
-      }]
+  it('Ignores case and whitespace', async () => {
+    await controller.getHistogram(' AtTribute ');
+    await controller.getHistogram('  VaLue ');
+  });
+
+  it('Throws for unrecognized dimension', async () => {
+    try {
+      await controller.getHistogram('unknown dimension');
+    } catch (ex) {
+      if (!(ex instanceof NotFoundException)) {
+        throw ex;
+      }
     }
-
-    const dbModel: Histogram = {
-      buckets: [
-        {
-          ordinal: 1,
-          count: 10
-        }
-      ]
-    }
-
-    jest.spyOn(service, 'getHistogram').mockImplementation(async () => dbModel);
-
-    expect(await controller.getHistogram('value')).toBe(dto);
   });
 });

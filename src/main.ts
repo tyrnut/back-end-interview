@@ -1,30 +1,30 @@
 import { NestFactory } from '@nestjs/core';
-import { Logger, VersioningType } from '@nestjs/common';
+import { LogLevel, VersioningType } from '@nestjs/common';
 import { AppModule } from './app.module';
-import { NextFunction } from 'express';
-import helmet from 'helmet';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { SUPPORTED_VERSIONS } from './constants';
+import { CONFIG, MODE_DEV, MODE_PROD } from './config';
+import helmet from 'helmet';
+import compression from 'compression';
 
 // Initialize config
 ConfigModule.forRoot();
 
-// Logging middleware
-const logger = new Logger('Http logger');
-function httpLogger(req: Request, res: Response, next: NextFunction) {
-  // Just an example
-  logger.debug(`${req.url}`);
-  next();
-}
-
 async function bootstrap() {
+  const logLevels: LogLevel[] = ['error', 'warn', 'fatal'];
+  if (CONFIG.getMode() === MODE_DEV) {
+    logLevels.push(...(['log', 'debug'] as LogLevel[]));
+  } else if (CONFIG.getMode() !== MODE_PROD) {
+    logLevels.push(...(['log', 'debug', 'verbose'] as LogLevel[]));
+  }
+
   const app = await NestFactory.create(AppModule, {
     cors: {
-      // This is all that is supported for now. Since this has to do with security, being cautious rather than opportunistic
       methods: ['GET'],
-      // Use whatever is provided by the client for the purposes of this exercise, ignoring security
+      // Set to true for demo purposes
       origin: true,
     },
+    logger: logLevels,
   });
 
   app.enableVersioning({
@@ -32,9 +32,8 @@ async function bootstrap() {
     type: VersioningType.URI,
   });
 
-  const config = app.get(ConfigService);
-  app.use(httpLogger, helmet());
-  await app.listen(config.get<string>('API_PORT') ?? 3000);
+  app.use(helmet(), compression());
+  await app.listen(CONFIG.getApiPort() ?? 3000);
 }
 
 bootstrap();

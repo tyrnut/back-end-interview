@@ -3,6 +3,7 @@ version: '3.9'
 
 services:
   postgres:
+    container_name: rmdb
     image: postgres
     environment:
       - POSTGRES_PASSWORD=secret
@@ -19,6 +20,7 @@ services:
   #   command: "sleep 5 && PGPASSWORD=secret psql -U postgres -d postgres -h postgres -f /db-init.sql"
 
   reportmeister:
+    container_name: rmapi
     build: .
     ports:
       - 3000:3000

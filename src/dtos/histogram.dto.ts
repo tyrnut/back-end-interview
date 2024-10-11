@@ -1,45 +1,23 @@
-import {
-  CategoryBucket,
-  Histogram,
-  NumericBucket,
-} from '../entities/histogram.entity';
+import { z } from 'zod';
 
-export class HistogramDto {
-  buckets: (NumericBucketDto | CategoryBucketDto)[];
+export const NumericBucketDtoSchema = z.object({
+  ordinal: z.number(),
+  count: z.number(),
+});
+
+export const CategoryBucketDtoSchema = z.object({
+  value: z.string(),
+  count: z.number(),
+});
+
+export const HistogramDtoSchema = z.object({
+  buckets: NumericBucketDtoSchema.or(CategoryBucketDtoSchema).array(),
   /** The start of the entire range */
-  start?: number;
+  start: z.number().optional(),
   /** The end of the entire range */
-  end?: number;
+  end: z.number().optional(),
+});
 
-  static fromDb(histogram: Histogram): HistogramDto {
-    return {
-      buckets: histogram.buckets,
-      start: histogram.start,
-      end: histogram.end,
-    };
-  }
-}
-
-export class NumericBucketDto {
-  ordinal: number;
-  count: number;
-
-  static fromDb(bucket: NumericBucket): NumericBucketDto {
-    return {
-      ordinal: bucket.ordinal,
-      count: bucket.count,
-    };
-  }
-}
-
-export class CategoryBucketDto {
-  value: string;
-  count: number;
-
-  static fromDb(bucket: CategoryBucket): CategoryBucketDto {
-    return {
-      value: bucket.value,
-      count: bucket.count,
-    };
-  }
-}
+export type HistogramDto = z.infer<typeof HistogramDtoSchema>;
+export type CategoryBucketDto = z.infer<typeof CategoryBucketDtoSchema>;
+export type NumericBucketDto = z.infer<typeof NumericBucketDtoSchema>;

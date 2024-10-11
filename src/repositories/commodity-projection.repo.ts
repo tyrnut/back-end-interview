@@ -4,62 +4,71 @@ import {
   CommodityProjection,
   tableName,
 } from '../entities/commodity-projection.entity';
-import { CategoryBucket, Histogram } from '../entities/histogram.entity';
-
-export type CommodityProjectionRepoExtension = {
-  isNumericProperty(name: string): boolean;
-  getCategoricalHistogramBuckets(
-    property: CommodityProjectionProperty,
-  ): Promise<Histogram>;
-  /* Notes about Numeric histograms
-   * These will have between 0 and bucketCount + 1 buckets.
-   *   The 'extra' bucket has values that were exactly at
-   *   the top of the data's range. It is customary to combine it
-   *   with the expected final bucket, but there are other
-   *   approaches, and that choice will be left to the client.
-   * There may also be buckets missing if there was no data for the range.
-   *   Again this is left up to the client as it may or may not be
-   *   necessary to have that information, and if it is, it can easily be
-   *   filled in with empty buckets.
-   */
-  getNumericHistogram(
-    property: CommodityProjectionProperty,
-    bucketCount?: number,
-  ): Promise<Histogram>;
-};
+import {
+  CategoryBucket,
+  Histogram,
+  HistogramSchema,
+} from '../entities/histogram.entity';
 
 export type CommodityProjectionProperty = keyof Omit<CommodityProjection, 'id'>;
 
-export const repoExtension: CommodityProjectionRepoExtension = {
-  isNumericProperty(name: string): boolean {
-    return name === 'value';
-  },
+export type CommodityProjectionRepo = Repository<CommodityProjection> &
+  CommodityProjectionRepoExtension;
+
+/** The repository extension for CommodityProjection */
+export type CommodityProjectionRepoExtension = {
+  /**
+   * Only numeric properties can be used to create
+   * numeric histograms. Everything else is
+   * categorical.
+   */
+  isNumericProperty(prop: CommodityProjectionProperty): boolean;
 
   /**
    * @returns Histogram with zero or more {CategoryBucket[]}
    */
-  async getCategoricalHistogramBuckets(
-    property: CommodityProjectionProperty,
+  getCategoryHistogramBuckets(
+    prop: CommodityProjectionProperty,
+  ): Promise<Histogram>;
+
+  /**
+   *
+   * Note about Numeric histograms:
+   *   If the table is empty, there will be no buckets.
+   *   If a bucket is empty, that bucket will not be in the response
+   *   There will almost always be an extra bucket with ordinal (bucketCount + 1)
+   *     for values that are exactly at the maximum
+   *
+   * @param bucketCount Number of buckets for the histogram
+   * @returns A Histogram with 0 or more buckets, up to bucketCount + 1
+   */
+  getNumericHistogram(
+    prop: CommodityProjectionProperty,
+    bucketCount: number,
+  ): Promise<Histogram>;
+};
+
+export const repoExtension: CommodityProjectionRepoExtension = {
+  isNumericProperty(prop: CommodityProjectionProperty): boolean {
+    return prop === 'value';
+  },
+
+  async getCategoryHistogramBuckets(
+    prop: CommodityProjectionProperty,
   ): Promise<Histogram> {
-    const column = snakeCase(property);
-    const sql = `SELECT ${column} AS value, COUNT(*) AS count FROM ${tableName} GROUP BY ${column} ORDER BY count`;
+    const column = snakeCase(prop);
+    const sql = `SELECT ${column} AS value, COUNT(*)::int AS count FROM ${tableName} GROUP BY ${column} ORDER BY count`;
     const repo = this as Repository<CommodityProjection>;
     return repo.manager
       .query<CategoryBucket[]>(sql)
-      .then((buckets) => new Histogram({ buckets: buckets }));
+      .then((buckets) => HistogramSchema.parse({ buckets: buckets }));
   },
 
-  /**
-   * @param bucketCount Number of buckets to use. The response will omit empty buckets, and an extra
-   *   bucket after the final one may exist if there are any that fall exactly on the maximum value
-   *   for the property
-   * @returns A Histogram with 0 or more buckets, up to bucketCount + 1
-   */
   async getNumericHistogram(
-    property: CommodityProjectionProperty,
-    bucketCount = 10,
+    prop: CommodityProjectionProperty,
+    bucketCount: number,
   ): Promise<Histogram> {
-    const column = snakeCase(property);
+    const column = snakeCase(prop);
 
     const sql = `
       WITH range AS (
@@ -95,12 +104,10 @@ export const repoExtension: CommodityProjectionRepoExtension = {
         range
     `;
     const repo = this as Repository<CommodityProjection>;
-    return repo.manager.query<Histogram[]>(sql).then((histograms) => {
-      if (histograms.length == 0) {
-        return new Histogram({ buckets: [] });
-      } else {
-        return histograms[0];
-      }
+    return repo.manager.query<Record<string, any>[]>(sql).then((histograms) => {
+      return histograms.length
+        ? HistogramSchema.parse(histograms[0])
+        : { buckets: [] };
     });
   },
 };

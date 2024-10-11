@@ -8,6 +8,7 @@ import {
 import { CommodityProjectionService } from '../services/commodity-projection.service';
 import { CommodityProjectionProperty } from '../repositories/commodity-projection.repo';
 import { HistogramDto } from '../dtos/histogram.dto';
+import { SUPPORTED_VERSIONS } from '../constants';
 
 const pathParamToEntityProperty: Map<string, CommodityProjectionProperty> =
   new Map([
@@ -22,7 +23,7 @@ const pathParamToEntityProperty: Map<string, CommodityProjectionProperty> =
 
 @Controller({
   path: ':dimension',
-  version: VERSION_NEUTRAL,
+  version: [...SUPPORTED_VERSIONS, VERSION_NEUTRAL],
 })
 export class CommodityProjectionController {
   constructor(private readonly service: CommodityProjectionService) {}
@@ -36,6 +37,8 @@ export class CommodityProjectionController {
     if (entityProperty) {
       return this.service.getHistogram(entityProperty);
     }
-    throw new NotFoundException('Invalid commodity projection dimension');
+    throw new NotFoundException(
+      `Invalid commodity projection dimension: ${dimension}`,
+    );
   }
 }

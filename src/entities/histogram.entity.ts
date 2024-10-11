@@ -1,25 +1,23 @@
-export class Histogram {
-  buckets: (NumericBucket | CategoryBucket)[];
-  /** The start of the entire range, if applicable */
-  start?: number;
-  /** The end of the entire range, if applicable */
-  end?: number;
+import { z } from 'zod';
 
-  constructor(data: Histogram) {
-    Object.assign(this, data);
-  }
-}
+export const NumericBucketSchema = z.object({
+  ordinal: z.number(),
+  count: z.number(),
+});
 
-export class NumericBucket {
-  ordinal: number;
-  count: number;
+export const CategoryBucketSchema = z.object({
+  value: z.string(),
+  count: z.number(),
+});
 
-  constructor(data: NumericBucket) {
-    Object.assign(this, data);
-  }
-}
+export const HistogramSchema = z.object({
+  buckets: CategoryBucketSchema.or(NumericBucketSchema).array(),
+  /** The start of the entire range */
+  start: z.number().optional(),
+  /** The end of the entire range */
+  end: z.number().optional(),
+});
 
-export class CategoryBucket {
-  value: string;
-  count: number;
-}
+export type Histogram = z.infer<typeof HistogramSchema>;
+export type CategoryBucket = z.infer<typeof CategoryBucketSchema>;
+export type NumericBucket = z.infer<typeof NumericBucketSchema>;
