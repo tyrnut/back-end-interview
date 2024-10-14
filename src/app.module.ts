@@ -1,7 +1,12 @@
 import { Module } from '@nestjs/common';
 import { CommodityProjectionService } from './services/commodity-projection.service';
 import { CommodityProjectionController } from './controllers/commodity-projection.controller';
-import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
+import {
+  getDataSourceToken,
+  getRepositoryToken,
+  TypeOrmModule,
+  TypeOrmModuleOptions,
+} from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import {
   makeSummaryProvider,
@@ -11,7 +16,13 @@ import { LoggingInterceptor } from './middleware/logging-interceptor';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { CONFIG, MODE_PROD } from './config';
 import { ServerExceptionFilter } from './middleware/server-exception-filter.filter';
-import { METRIC_TRANSACTION_DURATION } from './constants';
+import * as constants from './constants';
+import { CommodityProjectionRepositoryExt } from './repositories/commodity-projection.repo';
+import { DataSource } from 'typeorm';
+import { CommodityProjection } from './entities/commodity-projection.entity';
+import { TerminusModule } from '@nestjs/terminus';
+import { HealthController } from './controllers/health.controller';
+import { CustomPrometheusController } from './controllers/prometheus.controller';
 
 const dbConfig: TypeOrmModuleOptions = {
   type: 'postgres',
@@ -33,11 +44,14 @@ const dbConfig: TypeOrmModuleOptions = {
 
 @Module({
   imports: [
+    TerminusModule,
     ConfigModule,
     TypeOrmModule.forRoot(dbConfig),
-    PrometheusModule.register(),
+    PrometheusModule.register({
+      controller: CustomPrometheusController,
+    }),
   ],
-  controllers: [CommodityProjectionController],
+  controllers: [CommodityProjectionController, HealthController],
   providers: [
     CommodityProjectionService,
     {
@@ -48,8 +62,17 @@ const dbConfig: TypeOrmModuleOptions = {
       provide: APP_FILTER,
       useClass: ServerExceptionFilter,
     },
+    {
+      provide: getRepositoryToken(CommodityProjection),
+      inject: [getDataSourceToken()],
+      useFactory(dataSource: DataSource) {
+        return dataSource
+          .getRepository(CommodityProjection)
+          .extend({ ...new CommodityProjectionRepositoryExt() });
+      },
+    },
     makeSummaryProvider({
-      name: METRIC_TRANSACTION_DURATION,
+      name: constants.METRIC_TRANSACTION_DURATION,
       help: 'Http transaction duration in milliseconds',
       maxAgeSeconds: 300,
       ageBuckets: 5,

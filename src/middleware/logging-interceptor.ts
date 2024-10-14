@@ -5,7 +5,6 @@ import {
   CallHandler,
   Logger,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
@@ -16,7 +15,6 @@ import { Summary } from 'prom-client';
 export class LoggingInterceptor implements NestInterceptor {
   logger = new Logger(LoggingInterceptor.name);
   constructor(
-    private readonly config: ConfigService,
     @InjectMetric(METRIC_TRANSACTION_DURATION)
     private readonly transactionDurationSummary: Summary<string>,
   ) {}

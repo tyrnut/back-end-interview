@@ -5,9 +5,8 @@ This is a data API intended to provide data to other teams and external third pa
 
 ## Instructions
 ### Run in containers
-1. Run `docker compose up -d`
-1. Run `docker cp db-init.sql rmdb:/`
-1. Run `docker exec -it rmdb psql -U postgres -d postgres -f /db-init.sql`
+1. Run `docker compose up` (might have to run twice if docker hits a race condition)
+1. Wait until the nest server starts in the logs
 
 ### Run Locally
 1. Run `docker run --name postgres_db -e POSTGRES_PASSWORD=root -p 5432:5432 -d postgres postgres`
@@ -19,9 +18,40 @@ This is a data API intended to provide data to other teams and external third pa
 
 ### Call the service
 
-1. Call `http://localhost:3000/PROPERTY/histogram` (or a different port)
-    1. `property` is one of the commodity projection fields (Attribute, etc.)
-1. Visit `http://localhost:3000/v1/metrics` to see prometheus metrics (Note: the version could be removed at a later time using a Controller)
+1. Call `http://localhost:3000/PROPERTY/histogram`
+1. `http://localhost:3000/metrics` prometheus metrics
+1. `http://localhost:3000/health` health checks
+
+
+### Run Tests
+#### Containerized
+To run all the tests in a docker container and place the output in `tests-output`
+1. `docker compose -f .\docker-compose.yaml -f .\test.docker-compose.yaml up --build`
+
+#### Unit tests
+1. `npm run test`
+
+#### Integration tests
+1. Make sure postgres as running on 5432
+1. `npm run test:int`
+
+Note: there are still a 3 or 4 failures I didn't get to, they seem to be
+related to test issues.
+
+#### e2e Tests
+1. Make sure postgres as running on 5432
+1. `npm run test:e2e`
+
+#### Load tests
+1. `loadtest/run.{sh|ps1}`
+
+#### Test coverage reports
+1. `npm run test:cov`
+
+You can see the load tests results in HTML format under `loadtest/k6.html`
+
+## JS Docs
+Generate JS docs: `npx typedoc --entryPoints src/**/*.ts`, output defaults to `docs/`
 
 ## Requirements
 1. Long term feature growth
@@ -45,7 +75,7 @@ This is a data API intended to provide data to other teams and external third pa
 Nest is a 'batteries included' web project framework that has 
 extensive documentation, broad compatibility, a clear structure, and 
 built in support for all standard web application features
-(filters, auth guards, websockets...).
+(security, websockets, openapi/swagger, graphql support...).
 
 It is opinionated but flexible about project structure, 
 providing sensible defaults, and allowing for the use of other libraries: web, database,
@@ -133,20 +163,7 @@ Or if modules are not a good fit, layers can be subdivided by entity:
     1. Ideally the service and respond whether the database is available or not
 1. I incorporated zod to get some 'type safety' assurance from DB models and DTO models. If something is going wrong, it would
    probably be better to be alerted to it and potentially fail a call than to not know about an issue for weeks.
-1. I didn't use a mapper of any kind and just mapped DTOs/db models by hand in the service layer. I would definitely consider
-    it premature optimization to use a mapping layer or tool at this point.
-
-## Testing
-Here's the approach I would like to take, given more time:
-1. Component integration tests
-    1. Create fakes for the repositories or the database client
-    1. Use the fakes in tests that exercise the whole code base
-    1. Add integration tests that verify the fake and the real implementation work the same
-1. Understand how to use the Nest auto-mocking instead of falling back to mockito
-1. Load/performance testing - I prefer to run these within containers to have repeatable results
-
-That said, the services right now are very simple, and testing something that's almost as simple as adding two numbers is sometimes
-a waste of time and adds to the maintenance burden.
+1. I didn't use a mapper and just mapped DTOs/db models by hand in the service layer. It'd probably create a mapping layer as soon as more  services/dtos start getting added
 
 ## Alternative approaches
 1. If this is all this service will ever do, there's probably little need for the rigorous framework inspired by Nest, and

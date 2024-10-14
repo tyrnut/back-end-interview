@@ -9,7 +9,7 @@ describe('commodity projection controller tests', () => {
   beforeEach(async () => {
     const service = mock(CommodityProjectionService);
     when(service.getHistogram(anything())).thenReturn(
-      Promise.resolve({ buckets: [] }),
+      Promise.resolve({ type: 'numeric', buckets: [] }),
     );
     controller = new CommodityProjectionController(instance(service));
   });

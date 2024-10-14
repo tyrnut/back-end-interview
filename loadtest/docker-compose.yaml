@@ -1,0 +1,37 @@
+# This is designed to be run as a child to the primary compose,
+# so all paths are relative to that file's location
+
+services:
+  loadtests:
+    image: grafana/k6:latest
+    environment:
+      - HOST=reportmeister
+      - DB_HOST=postgres
+      - K6_WEB_DASHBOARD=true
+      - K6_WEB_DASHBOARD_EXPORT=k6.html
+    depends_on:
+      reportmeister:
+        condition: service_healthy
+    volumes:
+      - ./loadtest:/tests
+    working_dir: /tests
+    entrypoint: "k6 run commodity-histogram.js --out json=k6.results.json"
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 100M
+  # It's important to have reproducible results as much as possible
+  # The test container AND the system under test itself  should be limited
+  postgres:
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 100M
+  reportmeister:
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 100M

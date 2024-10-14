@@ -1,0 +1,29 @@
+services:
+  reportmeister:
+    container_name: tests
+    build: 
+      context: .
+      dockerfile: test.Dockerfile
+    ports:
+      - 3000:3000
+    depends_on:
+      postgres_init:
+        condition: service_completed_successfully
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=report_meister_db
+      - DB_SCHEMA=report_meister
+      - DB_USER=report_meister_user
+      - DB_PASSWORD=secret
+      - API_PORT=3000
+      - MODE=dev
+    volumes:
+      - ./tests-output:/app/tests-output
+    working_dir: /app
+    command: "./test.docker.sh"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:3000/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 30

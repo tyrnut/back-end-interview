@@ -1,23 +1,15 @@
-import { CommodityProjection } from '../entities/commodity-projection.entity';
+import { z } from 'zod';
 
-export class CommodityProjectionDto {
-  attribute?: string;
-  commodity?: string;
-  commodityType?: string;
-  units?: string;
-  yearType?: string;
-  year?: string;
-  value?: number;
+export const CommodityProjectionDtoSchema = z.object({
+  attribute: z.string().optional(),
+  commodity: z.string().optional(),
+  commodityType: z.string().optional(),
+  units: z.string().optional(),
+  yearType: z.string().optional(),
+  year: z.string().optional(),
+  value: z.string().optional(),
+});
 
-  static fromDb(proj: CommodityProjection): CommodityProjectionDto {
-    return {
-      attribute: proj.attribute,
-      commodity: proj.commodity,
-      commodityType: proj.commodityType,
-      units: proj.units,
-      yearType: proj.yearType,
-      year: proj.year,
-      value: proj.value,
-    };
-  }
-}
+export type CommodityProjectionDto = z.infer<
+  typeof CommodityProjectionDtoSchema
+>;

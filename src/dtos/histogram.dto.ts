@@ -10,7 +10,10 @@ export const CategoryBucketDtoSchema = z.object({
   count: z.number(),
 });
 
+const HistogramTypeDtoSchema = z.enum(['numeric', 'category']);
+
 export const HistogramDtoSchema = z.object({
+  type: HistogramTypeDtoSchema,
   buckets: NumericBucketDtoSchema.or(CategoryBucketDtoSchema).array(),
   /** The start of the entire range */
   start: z.number().optional(),

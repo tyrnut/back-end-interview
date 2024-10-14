@@ -49,7 +49,9 @@ export class InitData1728503092086 implements MigrationInterface {
         allParamValues = [];
       }
     }
-    await this.bulkInsert(queryRunner, allParamSets, allParamValues);
+    if (allParamSets.length > 0) {
+      await this.bulkInsert(queryRunner, allParamSets, allParamValues);
+    }
   }
 
   async bulkInsert(

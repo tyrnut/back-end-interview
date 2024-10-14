@@ -31,7 +31,7 @@ async function bootstrap() {
     defaultVersion: SUPPORTED_VERSIONS.at(SUPPORTED_VERSIONS.length - 1),
     type: VersioningType.URI,
   });
-
+  app.enableShutdownHooks();
   app.use(helmet(), compression());
   await app.listen(CONFIG.getApiPort() ?? 3000);
 }

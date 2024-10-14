@@ -9,21 +9,32 @@ services:
       - POSTGRES_PASSWORD=secret
     ports: 
       - 5432:5432 # Exposing for debugging
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 1s
+      timeout: 1s
+      retries: 30
 
-  # postgres_init:
-  #   image: postgres
-  #   depends_on:
-  #     - postgres
-  #   restart: "no"
-  #   volumes:
-  #     - ./db-init.sql:/db-init.sql
-  #   command: "sleep 5 && PGPASSWORD=secret psql -U postgres -d postgres -h postgres -f /db-init.sql"
+  postgres_init:
+    image: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    volumes:
+      - ./db-init.sql:/db-init.sql
+    environment:
+      - PGPASSWORD=secret
+    command: "psql -U postgres -d postgres -h postgres -f /db-init.sql"
 
   reportmeister:
     container_name: rmapi
     build: .
     ports:
       - 3000:3000
+    depends_on:
+      postgres_init:
+        condition: service_completed_successfully
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -33,4 +44,8 @@ services:
       - DB_PASSWORD=secret
       - API_PORT=3000
       - MODE=dev
-    
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:3000/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
