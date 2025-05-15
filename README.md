@@ -2,7 +2,7 @@
 
 ## Expectations:
 
-1. Using Python (preferred) or Javascript with any framework(s) you enjoy
+1. Using Typescript with any framework(s) you enjoy
 2. Feel free to be creative, but the result NEED NOT BE COMPLEX or excessively time-consuming
 3. We will review your work together during the in-person interview
 4. Send a link to the source, a repository URL or a zip file of your project the day before your interview day
@@ -17,10 +17,11 @@ Create an API service that provides a GET histogram route for each column in the
 * http://localhost/CommodityType/histogram
 * Etc.
 
-A GET request on any of these URLs should return HTML with the count of how many times each unique value appears in that column of the data. For example in the Commodity column, “Rice” appears 216 times, “Corn” 240, etc.
+A GET request on any of these URLs should return JSON with the count of how many times each unique value appears in that column of the data. For example in the Commodity column, “Rice” appears 216 times, “Corn” 240, etc.
 
 This service should be runnable using one of:
-* (preferred) In Docker using `docker-compose up` or `docker run` command you provide
+* AWS lambda
+* In Docker using `docker-compose up` or `docker run` command you provide
 * A simple readme describing how to start the service
 * http://repl.it or similar
 
